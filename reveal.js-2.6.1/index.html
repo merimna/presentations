@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+
+	<head>
+		<meta charset="utf-8">
+
+		<title>Unit Testing in PL/SQL</title>
+
+		<meta name="description" content="">
+		<meta name="author" content="Evelyn Liang">
+		<meta name="author" content="Alex Sghia-Hughes">
+
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+		<link rel="stylesheet" href="css/reveal.min.css">
+		<link rel="stylesheet" href="css/theme/night.css" id="theme">
+
+		<!-- For syntax highlighting -->
+		<link rel="stylesheet" href="lib/css/zenburn.css">
+
+		<!-- If the query includes 'print-pdf', use the PDF print sheet -->
+		<script>
+			document.write( '<link rel="stylesheet" href="css/print/' + ( window.location.search.match( /print-pdf/gi ) ? 'pdf' : 'paper' ) + '.css" type="text/css" media="print">' );
+		</script>
+
+		<!--[if lt IE 9]>
+		<script src="lib/js/html5shiv.js"></script>
+		<![endif]-->
+	</head>
+
+	<body>
+
+		<div class="reveal">
+
+			<!-- Any section element inside of this container is displayed as a slide -->
+			<div class="slides">
+                <section>
+                    <h1>Unit Testing in PL/SQL</h1>
+                    <aside class="notes">
+                    lorem ipsum dolor sit amet
+                    </aside>
+                </section>
+                <section>
+                    <img src="lemo-nade.png"/>
+                </section>
+                <section>
+                    <img src="dep-graph.jpg"/>
+                </section>
+                <section>
+                    <h1>Stubbed Object Injection</h1>
+                </section>
+                <section>
+					<pre class="stretch"><code class="lang-sql" data-trim>
+type body payment_zest is
+    static function verify (
+       bank_account_number in varchar2
+    ) return boolean
+    is 
+        v_payment_zest payment_zest;
+    begin
+        v_payment_zest := payment_zest();
+        v_payment_zest.request_json.put('bank_account_number', bank_account_number);
+        v_payment_zest.post();
+        return gateway_transaction.new(v_payment_zest.resp_content);
+    end verify;
+end payment_zest;
+
+procedure ut_verify
+is
+    gateway_transaction_id number;
+    bank_number number;
+begin
+    gateway_transaction_id := payment_zest.verify(bank_number);
+    utassert.isnotnull('returns a gateway_transaction', gateway_transaction_id); 
+end ut_verify;
+					</pre></code>
+                </section>
+                <section>
+                <pre class="stretch"><code class="lang-sql" data-trim>
+                        
+procedure ut_verify
+is
+    gateway_transaction_id number;
+    bank_number number;
+    zest_obj payment_zest := stubbed_payment_zest();
+begin
+    gateway_transaction_id := payment_zest.verify(bank_number, zest_obj);
+    utassert.isnotnull('returns a gateway_transaction', gateway_transaction_id); 
+    utassert.eq('the request json gets the bank_number correctly', 
+        bank_number, zest_obj.request_json.get('bank_number'));
+    utassert.isnotnull('the response json has a proprietary_id', zest_obj.response_json.get('proprietary_id'));
+end ut_verify;
+                </code></pre>
+                </section>
+                <section>
+					<pre class="stretch"><code class="lang-sql" data-trim>
+type stubbed_payment_zest under payment_zest (
+    constructor function stubbed_payment_zest 
+      (self in out nocopy stubbed_payment_zest)
+    return self as result,
+
+    overriding member procedure send_request
+      (self in out nocopy stubbed_payment_zest)
+)
+
+-- original version
+member function send_request(self in out nocopy zest)
+is
+begin
+    http_wrapper.issue_request(
+        response_content => self.resp_content
+    );
+end post;
+
+-- stubbed_payment_zest version
+overriding member function send_request(self in out nocopy stubbed_payment_zest)
+is
+begin
+    resp_content := 'whatever we want';
+end post;
+					</pre></code>
+                </section>
+                <section>
+					<pre class="stretch"><code class="lang-sql" data-trim>
+static function verify (
+   bank_account_number  in varchar2,
+   zest_obj             in payment_zest := payment_zest()
+) return boolean
+is 
+begin
+    zest_obj.request_json.put('bank_account_number', bank_account_number);
+    zest_obj.post();
+    return gateway_transaction.new(zest_obj.resp_content)
+end verify;
+					</pre></code>
+                </section>
+                <section>
+                    <h1>Generic Test Doubles</h1>
+                </section>
+                <section data-transition="none">
+					<pre class="stretch"><code class="lang-sql" data-trim>
+package body math as
+    function add (
+        num_a   number
+        num_b   number
+    ) return number
+    is
+        v_sum   number
+    begin
+        v_sum := num_a + num+b
+        return v_sum;
+    end add;
+end math;
+					</code></pre>
+				</section>
+                <section data-transition="none">
+					<pre class="stretch"><code class="lang-sql" data-trim>
+package body math as
+    function add (
+        num_a   number
+        num_b   number
+    ) return number
+    is
+    
+    
+    
+    
+    end add;
+end math;
+					</code></pre>
+				</section>
+                <section data-transition="none">
+					<pre class="stretch"><code class="lang-sql" data-trim>
+package body math as
+    function add (
+        num_a   number
+        num_b   number
+    ) return number
+    is
+    
+    begin
+    
+        return null;
+    end add;
+end math;
+
+pl_double.double('math', 'add', 'function');
+					</code></pre>
+				</section>
+                <section data-transition="none">
+					<pre class="stretch"><code class="lang-sql" data-trim>
+package body math as
+    function add (
+        num_a   number
+        num_b   number
+    ) return number
+    is
+    
+    begin
+    
+        return 2;
+    end add;
+end math;
+
+pl_double.double('math', 'add', 'function', 'return 2;');
+					</code></pre>
+				</section>
+                <section data-transition="none">
+					<pre class="stretch"><code class="lang-sql" data-trim>
+function calculator
+returns number
+is
+begin
+    return math.add(1,1);
+end calculator;
+
+procedure ut_calculator
+is
+    v_result number;
+begin
+    pl_double.double('math', 'add', 'function', 'return 2;');
+
+    v_result := calculator();
+
+    ut_assert.eq('math.add is called once',
+        pl_double.times_called('math', 'add', 'function'), 1);
+end ut_calculator;
+                    </code></pre>
+                </section>
+
+			</div>
+
+		</div>
+
+		<script src="lib/js/head.min.js"></script>
+		<script src="js/reveal.min.js"></script>
+
+		<script>
+
+			// Full list of configuration options available here:
+			// https://github.com/hakimel/reveal.js#configuration
+			Reveal.initialize({
+				controls: true,
+				progress: true,
+				history: true,
+				center: true,
+
+				theme: Reveal.getQueryHash().theme, // available themes are in /css/theme
+				transition: Reveal.getQueryHash().transition || 'default', // default/cube/page/concave/zoom/linear/fade/none
+
+				// Parallax scrolling
+				// parallaxBackgroundImage: 'https://s3.amazonaws.com/hakim-static/reveal-js/reveal-parallax-1.jpg',
+				// parallaxBackgroundSize: '2100px 900px',
+
+				// Optional libraries used to extend on reveal.js
+				dependencies: [
+					{ src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+					{ src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+					{ src: 'plugin/zoom-js/zoom.js', async: true, condition: function() { return !!document.body.classList; } },
+					{ src: 'plugin/notes/notes.js', async: true, condition: function() { return !!document.body.classList; } }
+				]
+			});
+
+		</script>
+
+	</body>
+</html>
