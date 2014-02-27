@@ -77,6 +77,11 @@ begin
     utassert.isnotnull('returns a gateway_transaction', gateway_transaction_id); 
 end ut_verify;
 					</pre></code>
+                    <aside class="notes">
+                       what is payment_zest?
+                       what are we currently testing?
+                       what can be better?
+                    </aside>
                 </section>
                 <section>
                 <pre class="stretch"><code class="lang-sql" data-trim>
@@ -122,6 +127,10 @@ begin
     resp_content := 'whatever we want';
 end post;
 					</pre></code>
+                    <aside class="notes">
+                        why override send_request? 
+                        original version vs new version
+                    </aside>
                 </section>
                 <section>
 					<pre class="stretch"><code class="lang-sql" data-trim>
@@ -136,9 +145,18 @@ begin
     return gateway_transaction.new(zest_obj.resp_content)
 end verify;
 					</pre></code>
+                    <aside class="notes">
+                        in order to use the new stubbed_payment_zest we need to add a new parameter to verify.
+                        this new definition of verify is functionally equivalent, but allows for more testing
+                    </aside>
                 </section>
                 <section>
                     <h1>Generic Test Doubles</h1>
+                    <aside class="notes">
+                        a way of replacing dependent code without affecting the code actually being tested
+                        ie if you were calling verify, you could instead double it with something that returns bool
+                        pl_double intro
+                    </aside>
                 </section>
                 <section data-transition="none">
 					<pre class="stretch"><code class="lang-sql" data-trim>
