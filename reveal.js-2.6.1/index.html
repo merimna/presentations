@@ -68,6 +68,10 @@ type body payment_zest is
     end verify;
 end payment_zest;
 
+					</pre></code>
+                </section>
+                <section>
+					<pre class="stretch"><code class="lang-sql" data-trim>
 procedure ut_verify
 is
     gateway_transaction_id number;
@@ -111,6 +115,10 @@ type stubbed_payment_zest under payment_zest (
       (self in out nocopy stubbed_payment_zest)
 )
 
+                </code></pre>
+                </section>
+                <section>
+					<pre class="stretch"><code class="lang-sql" data-trim>
 -- original version
 member function send_request(self in out nocopy zest)
 is
